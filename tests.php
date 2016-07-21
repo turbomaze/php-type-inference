@@ -6,6 +6,7 @@ require 'InconsistentTypeException.php';
 use Datto\Cinnabari\TypeInferer;
 use Datto\Cinnabari\InconsistentTypeException;
 
+// set up variables
 $signatures = array(
     'plus' => array(
         array(
@@ -39,19 +40,38 @@ $signatures = array(
             'arguments' => array('string', 'integer'),
             'return' => 'string'
         )
-    ),
-
-    'foo' => array(
-        array(
-            'arguments' => array('L', 'M', 'N'),
-            'return' => 'O'
-        )
     )
 );
 
 $typeInferer = new TypeInferer($signatures);
 
-$expressions = array(
+// test 1: simple plus
+$simplePlusTest = array(
+    array(
+        'name' => 'plus',
+        'type' => 'function',
+        'arguments' => array(
+            array('name' => 'a', 'type' => 'parameter'),
+            array('name' => 'b', 'type' => 'parameter')
+        )
+    )
+);
+$simplePlusAnswer = array(
+    'integer' => array(array('a' => 'integer', 'b' => 'integer')),
+    'float' => array(
+        array('a' => 'integer', 'b' => 'float'),
+        array('a' => 'float', 'b' => 'integer'),
+        array('a' => 'float', 'b' => 'float')
+    ),
+    'string' => array(array('a' => 'string', 'b' => 'string'))
+);
+assert(
+    $typeInferer->infer($simplePlusTest) == $simplePlusAnswer,
+    'Simple plus'
+);
+
+// test 1: force a type on child
+$substrTest = array(
     array(
         'name' => 'substr',
         'type' => 'function',
@@ -69,10 +89,12 @@ $expressions = array(
         )
     )
 );
+$substrAnswer = array(
+    'string' => array(array('a' => 'string', 'b' => 'string', 'c' => 'integer')),
+);
+assert(
+    $typeInferer->infer($substrTest) == $substrAnswer,
+    'Substr'
+);
 
-try {
-    echo json_encode($typeInferer->infer($expressions), JSON_PRETTY_PRINT) . "\n";
-} catch (InconsistentTypeException $e) {
-    echo $e->getMessage() . "\n";
-    echo json_encode($e->getData()) . "\n";
-}
+echo "All tests passed!\n";
