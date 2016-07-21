@@ -58,13 +58,13 @@ $expressions = array(
                 ),
             ),
 
-            array('name' => 'a', 'type' => 'parameter')
+            array('name' => 'c', 'type' => 'parameter')
         )
     )
 );
 
 try {
-    echo $typeInferer->infer($expressions) . "\n";
+    echo json_encode($typeInferer->infer($expressions), JSON_PRETTY_PRINT) . "\n";
 } catch (InconsistentTypeException $e) {
     echo $e->getMessage() . "\n";
     echo json_encode($e->getData()) . "\n";

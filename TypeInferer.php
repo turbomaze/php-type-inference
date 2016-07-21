@@ -14,15 +14,11 @@ class TypeInferer
     public function infer($expressions)
     {
         // disambiguate the function and parameter names by appending unique ids to names
-        $labeledExpression = $expressions[0]; // only look at the first expression for now
-        $this->disambiguate($labeledExpression, 0); // 0 is the initial id
-        echo "Input expression\n";
-        echo json_encode($labeledExpression) . "\n\n"; // log it
+        $labeledExpression = $expressions[0]; // TODO: only look at the first expression for now
+        $this->disambiguate($labeledExpression); // 0 is the initial id
 
         // construct a constraints dictionary
         $this->getConstraints($labeledExpression, $constraints);
-        echo "Constraints dictionary\n";
-        echo json_encode($constraints) . "\n\n"; // log it
 
         $inconsistencies = array();
         $validTypeSettings = $this->reconstruct(
@@ -31,11 +27,10 @@ class TypeInferer
             $inconsistencies
         );
 
-        echo "Valid type combinations\n";
-        echo json_encode($validTypeSettings, JSON_PRETTY_PRINT) . "\n\n";
+        return $validTypeSettings;
     }
 
-    private function disambiguate(&$expression, $id)
+    private function disambiguate(&$expression, $id = 0)
     {
         $expression['name'] = $expression['name'] . '#' . $id;
         $id += 1;
