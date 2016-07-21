@@ -40,11 +40,28 @@ $signatures = array(
             'return' => 'string'
         )
     ),
+    
+    'slice' => array(
+        array(
+            'arguments' => array('string', 'integer', 'integer'),
+            'return' => 'string'
+        )
+    ),
 
     'foo' => array(
         array(
-            'arguments' => array('L', 'M', 'N'),
-            'return' => 'O'
+            'arguments' => array('X', 'Y', 'Z'),
+            'return' => 'W'
+        ),
+
+        array(
+            'arguments' => array('X', 'Y`', 'Z'),
+            'return' => 'W`'
+        ),
+
+        array(
+            'arguments' => array('X', 'Y`', 'Z`'),
+            'return' => 'W`'
         )
     )
 );
@@ -53,25 +70,40 @@ $typeInferer = new TypeInferer($signatures);
 
 $expressions = array(
     array(
-        'name' => 'substr',
+        'name' => 'foo',
         'type' => 'function',
         'arguments' => array(
-            array(
-                'name' => 'plus',
-                'type' => 'function',
-                'arguments' => array(
-                    array('name' => 'a', 'type' => 'parameter'),
-                    array('name' => 'b', 'type' => 'parameter')
-                ),
-            ),
-
+            array('name' => 'a', 'type' => 'parameter'),
+            array('name' => 'b', 'type' => 'parameter'),
             array('name' => 'c', 'type' => 'parameter')
         )
     )
 );
 
+$expressions = array(
+    array(
+        'name' => 'slice',
+        'type' => 'function',
+        'arguments' => array(
+            array('name' => 'a', 'type' => 'parameter'),
+            array('name' => 'b', 'type' => 'parameter'),
+            array(
+                'name' => 'plus',
+                'type' => 'function',
+                'arguments' => array(
+                    array('name' => 'c', 'type' => 'parameter'),
+                    array('name' => 'd', 'type' => 'parameter')
+                )
+            )
+        )
+    )
+);
+
 try {
-    echo json_encode($typeInferer->infer($expressions), JSON_PRETTY_PRINT) . "\n";
+    echo json_encode(
+        $typeInferer->infer($expressions),
+        JSON_PRETTY_PRINT
+    ) . "\n";
 } catch (InconsistentTypeException $e) {
     echo $e->getMessage() . "\n";
     echo json_encode($e->getData()) . "\n";
