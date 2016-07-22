@@ -51,7 +51,10 @@ class TypeInferer
             throw $inconsistencies[0];
         }
 
-        return $validTypeSettings;
+        // build a structure to support efficient consistency verification (as opposed to an O(1) scan)
+        $lookupStructure = $this->getHierarchyFromList($validTypeSettings);
+
+        return $lookupStructure;
     }
 
     private function disambiguate(&$expression, $id = 0)
@@ -364,5 +367,33 @@ class TypeInferer
             $disambiguatedId = substr($id, 0, $index);
         }
         return $disambiguatedId;
+    }
+
+    public function getHierarchyFromList($list)
+    {
+        $structure = array();
+        $structure['ordering'] = array_keys(each($list)[1][0]); // the very first parameter setting
+        $structure['hierarchy'] = array();
+        foreach ($list as $returnType => $settings) {
+            foreach ($settings as $key => $setting) {
+                $this->insertSettingIntoHierarchy($setting, $structure['ordering'], $structure['hierarchy']);
+            }
+        }
+
+        return $structure;
+    }
+
+    public function insertSettingIntoHierarchy($setting, $ordering, &$hierarchy)
+    {
+        if (count($ordering) === 0) {
+            $hierarchy = true;
+            return;
+        }
+
+        $type = $setting[$ordering[0]];
+        if (!array_key_exists($type, $hierarchy)) {
+            $hierarchy[$type] = array();
+        }
+        $this->insertSettingIntoHierarchy($setting, array_slice($ordering, 1), $hierarchy[$type]);
     }
 }
