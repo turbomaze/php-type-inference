@@ -11,7 +11,7 @@ class TypeInferer
     {
         $this->signatures = $signatures;
 
-        // expand the flattened signatures into a hierarchical, associative array structure
+        // expand the flattened signatures into a hierarchical, associative array
         $this->signatureDictionary = array();
         foreach ($signatures as $name => $overloadList) {
             $this->signatureDictionary[$name] = array();
@@ -46,6 +46,10 @@ class TypeInferer
             $labeledExpression,
             $inconsistencies
         );
+
+        if (count(array_keys($validTypeSettings)) === 0) {
+            throw $inconsistencies[0];
+        }
 
         return $validTypeSettings;
     }
@@ -158,7 +162,7 @@ class TypeInferer
         return $viableSignatures;
     }
 
-    private function reconstruct($parentFunctionName, $constraints, $expression, $err)
+    private function reconstruct($parentFunctionName, $constraints, $expression, &$error)
     {
         // base case: parameters
         if ($expression['type'] === 'parameter') {
@@ -172,13 +176,14 @@ class TypeInferer
             $reconstructedKids = array();
             for ($c = 0; $c < count($expression['arguments']); $c++) {
                 $child = $expression['arguments'][$c];
-                $reconstructedKids[] = $this->reconstruct($functionName, $constraints, $child, $err);
+                $reconstructedKids[] = $this->reconstruct($functionName, $constraints, $child, $error);
             }
 
             // compute the raw product (indexed by return type)
             $rawProduct = $this->getSiblingProduct(
                 $this->signatureDictionary[$functionName],
-                $reconstructedKids
+                $reconstructedKids,
+                $error
             );
 
             if (!array_key_exists($expression['name'], $constraints)) {
@@ -251,7 +256,7 @@ class TypeInferer
         ));
     }
 
-    private function getSiblingProduct($signature, $siblings)
+    private function getSiblingProduct($signature, $siblings, &$error)
     {
         $product = array();
         if (count($siblings) === 1) {
@@ -277,8 +282,9 @@ class TypeInferer
                 $product = $this->consolidate(
                     $product,
                     $this->cartesianProduct(
-                        $this->getSiblingProduct($offsetSignature, $offsetSiblings),
-                        $configuration['settings']
+                        $this->getSiblingProduct($offsetSignature, $offsetSiblings, $error),
+                        $configuration['settings'],
+                        $error
                     )
                 );
             }
@@ -302,16 +308,22 @@ class TypeInferer
         return $object;
     }
 
-    private function cartesianProduct($labeledSet, $incrementalSet)
+    private function cartesianProduct($labeledSet, $incrementalSet, &$error)
     {
         $product = array();
         foreach ($labeledSet as $returnType => $settings) {
-            $product[$returnType] = array_map(
-                function ($setting) use ($incrementalSet) {
-                    return $this->merge($setting, $incrementalSet);
-                },
-                $settings
-            );
+            foreach ($settings as $key => $setting) {
+                try {
+                    $mergedSets = $this->merge($setting, $incrementalSet);
+
+                    if (!array_key_exists($returnType, $product)) {
+                        $product[$returnType] = array();
+                    }
+                    $product[$returnType][] = $mergedSets;
+                } catch (InconsistentTypeException $e) {
+                    $error[] = $e;
+                }
+            }
         }
         return $product;
     }

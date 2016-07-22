@@ -9,7 +9,7 @@ use Datto\Cinnabari\InconsistentTypeException;
 function formatTypeSettings($setting)
 {
     $formatted = "";
-    foreach ($setting as $name => $type) {
+    foreach (array_reverse($setting) as $name => $type) {
         $formatted .= $name . "::" . $type . ", ";
     }
     return substr($formatted, 0, strlen($formatted) - 2);
@@ -33,18 +33,18 @@ $signatures = array(
         ),
 
         array(
-            'arguments' => array('float', 'int'),
-            'return' => 'float'
+            'arguments' => array('flt', 'int'),
+            'return' => 'flt'
         ),
 
         array(
-            'arguments' => array('int', 'float'),
-            'return' => 'float'
+            'arguments' => array('int', 'flt'),
+            'return' => 'flt'
         ),
 
         array(
-            'arguments' => array('float', 'float'),
-            'return' => 'float'
+            'arguments' => array('flt', 'flt'),
+            'return' => 'flt'
         ),
 
         array(
@@ -62,30 +62,13 @@ $signatures = array(
     
     'slice' => array(
         array(
-            'arguments' => array('str', 'int', 'int'),
+            'arguments' => array('str', 'flt', 'int'),
             'return' => 'str'
         ),
 
         array(
-            'arguments' => array('str', 'int', 'float'),
+            'arguments' => array('str', 'flt', 'flt'),
             'return' => 'str'
-        )
-    ),
-
-    'foo' => array(
-        array(
-            'arguments' => array('X', 'Y', 'Z'),
-            'return' => 'W'
-        ),
-
-        array(
-            'arguments' => array('X', 'Y`', 'Z'),
-            'return' => 'W`'
-        ),
-
-        array(
-            'arguments' => array('X', 'Y`', 'Z`'),
-            'return' => 'W`'
         )
     )
 );
@@ -94,24 +77,19 @@ $typeInferer = new TypeInferer($signatures, $argv[1]);
 
 $expressions = array(
     array(
-        'name' => 'foo',
-        'type' => 'function',
-        'arguments' => array(
-            array('name' => 'a', 'type' => 'parameter'),
-            array('name' => 'b', 'type' => 'parameter'),
-            array('name' => 'c', 'type' => 'parameter')
-        )
-    )
-);
-
-$expressions = array(
-    array(
         'name' => 'slice',
         'type' => 'function',
         'arguments' => array(
             array('name' => 'a', 'type' => 'parameter'),
-            array('name' => 'b', 'type' => 'parameter'),
-            array('name' => 'c', 'type' => 'parameter')
+            array(
+                'name' => 'plus',
+                'type' => 'function',
+                'arguments' => array(
+                    array('name' => 'c', 'type' => 'parameter'),
+                    array('name' => 'd', 'type' => 'parameter')
+                )
+            ),
+            array('name' => 'b', 'type' => 'parameter')
         )
     )
 );
