@@ -45,6 +45,11 @@ $signatures = array(
         array(
             'arguments' => array('string', 'integer', 'integer'),
             'return' => 'string'
+        ),
+
+        array(
+            'arguments' => array('string', 'integer', 'float'),
+            'return' => 'string'
         )
     ),
 
@@ -82,17 +87,16 @@ $expressions = array(
 
 $expressions = array(
     array(
-        'name' => 'slice',
+        'name' => 'plus',
         'type' => 'function',
         'arguments' => array(
             array('name' => 'a', 'type' => 'parameter'),
-            array('name' => 'b', 'type' => 'parameter'),
             array(
                 'name' => 'plus',
                 'type' => 'function',
                 'arguments' => array(
-                    array('name' => 'c', 'type' => 'parameter'),
-                    array('name' => 'd', 'type' => 'parameter')
+                    array('name' => 'b', 'type' => 'parameter'),
+                    array('name' => 'c', 'type' => 'parameter')
                 )
             )
         )

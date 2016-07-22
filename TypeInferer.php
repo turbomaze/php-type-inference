@@ -34,6 +34,7 @@ class TypeInferer
         // disambiguate the function and parameter names by appending unique ids to names
         $labeledExpression = $expressions[0]; // TODO: only look at the first expression for now
         $this->disambiguate($labeledExpression); // 0 is the initial id
+        // echo json_encode($labeledExpression, JSON_PRETTY_PRINT) . "\n\n";
 
         // construct a constraints dictionary
         $this->getConstraints($labeledExpression, $constraints);
@@ -160,7 +161,10 @@ class TypeInferer
     {
         // base case: parameters
         if ($expression['type'] === 'parameter') {
-            return $this->reconstructParameter($expression['name'], $constraints[$expression['name']]);
+            return $this->reconstructParameter(
+                $expression['name'],
+                $constraints[$expression['name']]
+            );
         } else {
             // first, reconstruct all the children
             $reconstructedKids = array();
@@ -170,18 +174,26 @@ class TypeInferer
             }
 
             $functionName = $this->getNameFromIdentifier($expression['name']);
+            echo $functionName. "\n";
             $rawProduct = $this->getSiblingProduct(
                 $this->signatureDictionary[$functionName],
                 $reconstructedKids
             );
+            echo json_encode($reconstructedKids, JSON_PRETTY_PRINT) . " aa\n\n";
+
             if (array_key_exists($expression['name'], $constraints)) {
-                $returnType = array_keys($rawProduct)[0];
-                $reconstruction = array(
-                    'settings' => $rawProduct[$returnType],
-                    'return' => $returnType
-                );
+                $reconstruction = array();
+                foreach ($rawProduct as $returnType => $settings) {
+                    for ($i = 0; $i < count($settings); $i++) {
+                        $reconstruction[] = array(
+                            'settings' => $settings[$i],
+                            'return' => $returnType
+                        );
+                    }
+                }
                 return $this->reconstructFunction($functionName, $constraints[$expression['name']], $reconstruction);
             } else {
+                // echo json_encode($rawProduct, JSON_PRETTY_PRINT) . " bb\n\n";
                 return $rawProduct;
             }
         }
@@ -193,11 +205,14 @@ class TypeInferer
         foreach ($constraint as $type => $hierarchy) {
             if (gettype($constraint[$type]) === 'boolean') {
                 $reconstruction[] = array(
-                    'settings' => array($this->getNameFromIdentifier($name) => $type),
-                    'return' => $type
+                  'settings' => array($this->getNameFromIdentifier($name) => $type),
+                  'return' => $type
                 );
             } else {
-                $reconstruction[$type] = $this->reconstructParameter($name, $constraint[$type]);
+                $reconstruction[$type] = $this->reconstructParameter(
+                    $name,
+                    $constraint[$type]
+                );
             }
         }
         return $reconstruction;
@@ -208,7 +223,7 @@ class TypeInferer
         $reconstruction = array();
         foreach ($constraint as $type => $hierarchy) {
             if (gettype($constraint[$type]) === 'boolean') {
-                $reconstruction[] = $value;
+                $reconstruction = $value;
             } else {
                 $reconstruction[$type] = $this->reconstructFunction($name, $constraint[$type], $value);
             }
@@ -219,6 +234,8 @@ class TypeInferer
     private function getSiblingProduct($signature, $siblings)
     {
         $product = array();
+        echo json_encode($signature) . " sig\n\n";
+        echo json_encode($siblings) . " bling\n\n";
         if (count($siblings) === 1) {
             foreach ($siblings[0] as $key => $configuration) {
                 $returnType = $signature[$configuration['return']];
