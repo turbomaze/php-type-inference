@@ -34,14 +34,14 @@ class TypeInferer
         // disambiguate the function and parameter names by appending unique ids to names
         $labeledExpression = $expressions[0]; // TODO: only look at the first expression for now
         $this->disambiguate($labeledExpression); // 0 is the initial id
-        // echo json_encode($labeledExpression, JSON_PRETTY_PRINT) . "\n\n";
 
         // construct a constraints dictionary
-        $this->getConstraints($labeledExpression, $constraints);
-        // echo json_encode($constraints, JSON_PRETTY_PRINT)."\n\n";
+        $this->populateConstraints($labeledExpression, $constraints);
 
+        // resolve the constraints (bottom up) to generate the list of valid types
         $inconsistencies = array();
         $validTypeSettings = $this->reconstruct(
+            $labeledExpression['name'],
             $constraints,
             $labeledExpression,
             $inconsistencies
@@ -62,7 +62,7 @@ class TypeInferer
         return $id;
     }
 
-    private function getConstraints($expression, &$constraints)
+    private function populateConstraints($expression, &$constraints)
     {
         if (!isset($constraints)) {
             $constraints = array();
@@ -109,9 +109,11 @@ class TypeInferer
             // recurse on children
             for ($c = 0; $c < count($expression['arguments']); $c++) {
                 $child = $expression['arguments'][$c];
-                $this->getConstraints($child, $constraints);
+                $this->populateConstraints($child, $constraints);
             }
         }
+        
+        return true;
     }
 
     private function getTypeRestrictions($constraints, $expressionName)
@@ -126,7 +128,6 @@ class TypeInferer
 
     private function searchConstraintsForTerminals($constraints, &$terminalTypes)
     {
-        // here
         foreach ($constraints as $type => $value) {
             if (gettype($value) === 'boolean') {
                 $terminalTypes[$type] = true;
@@ -157,7 +158,7 @@ class TypeInferer
         return $viableSignatures;
     }
 
-    private function reconstruct($constraints, $expression, $err)
+    private function reconstruct($parentFunctionName, $constraints, $expression, $err)
     {
         // base case: parameters
         if ($expression['type'] === 'parameter') {
@@ -167,21 +168,24 @@ class TypeInferer
             );
         } else {
             // first, reconstruct all the children
+            $functionName = $this->getNameFromIdentifier($expression['name']);
             $reconstructedKids = array();
             for ($c = 0; $c < count($expression['arguments']); $c++) {
                 $child = $expression['arguments'][$c];
-                $reconstructedKids[] = $this->reconstruct($constraints, $child, $err);
+                $reconstructedKids[] = $this->reconstruct($functionName, $constraints, $child, $err);
             }
 
-            $functionName = $this->getNameFromIdentifier($expression['name']);
-            echo $functionName. "\n";
+            // compute the raw product (indexed by return type)
             $rawProduct = $this->getSiblingProduct(
                 $this->signatureDictionary[$functionName],
                 $reconstructedKids
             );
-            echo json_encode($reconstructedKids, JSON_PRETTY_PRINT) . " aa\n\n";
 
-            if (array_key_exists($expression['name'], $constraints)) {
+            if (!array_key_exists($expression['name'], $constraints)) {
+                // if there are no constraints on this expression, it's at the top and this format is good
+                return $rawProduct;
+            } else {
+                // otherwise, transform the raw product to the intermediate form, indexed by the previous child
                 $reconstruction = array();
                 foreach ($rawProduct as $returnType => $settings) {
                     for ($i = 0; $i < count($settings); $i++) {
@@ -191,10 +195,12 @@ class TypeInferer
                         );
                     }
                 }
-                return $this->reconstructFunction($functionName, $constraints[$expression['name']], $reconstruction);
-            } else {
-                // echo json_encode($rawProduct, JSON_PRETTY_PRINT) . " bb\n\n";
-                return $rawProduct;
+
+                return $this->reconstructFunction(
+                    $constraints[$expression['name']],
+                    $this->signatureDictionary[$parentFunctionName],
+                    $reconstruction
+                );
             }
         }
     }
@@ -218,24 +224,36 @@ class TypeInferer
         return $reconstruction;
     }
 
-    private function reconstructFunction($name, $constraint, $value)
+    private function reconstructFunction($constraint, $signature, $value)
     {
         $reconstruction = array();
         foreach ($constraint as $type => $hierarchy) {
             if (gettype($constraint[$type]) === 'boolean') {
-                $reconstruction = $value;
+                $reconstruction = $this->filterSettingsListBySignature($value, $signature);
             } else {
-                $reconstruction[$type] = $this->reconstructFunction($name, $constraint[$type], $value);
+                $reconstruction[$type] = $this->reconstructFunction(
+                    $constraint[$type],
+                    $signature[$type],
+                    $value
+                );
             }
         }
         return $reconstruction;
     }
 
+    private function filterSettingsListBySignature($settings, $signature)
+    {
+        return array_values(array_filter(
+            $settings,
+            function ($setting) use ($signature) {
+                return array_key_exists($setting['return'], $signature);
+            }
+        ));
+    }
+
     private function getSiblingProduct($signature, $siblings)
     {
         $product = array();
-        echo json_encode($signature) . " sig\n\n";
-        echo json_encode($siblings) . " bling\n\n";
         if (count($siblings) === 1) {
             foreach ($siblings[0] as $key => $configuration) {
                 $returnType = $signature[$configuration['return']];
@@ -276,8 +294,7 @@ class TypeInferer
         }
         foreach ($b as $keyB => $valueB) {
             if (array_key_exists($keyB, $object)) {
-                // TODO: make less ambiguous
-                $object[$keyB] = array_merge($object[$keyB], $b[$keyB]);
+                $object[$keyB] = array_merge($object[$keyB], $b[$keyB]); // numeric keys; appends elements
             } else {
                 $object[$keyB] = $b[$keyB];
             }

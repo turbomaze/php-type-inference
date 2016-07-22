@@ -6,20 +6,39 @@ require 'InconsistentTypeException.php';
 use Datto\Cinnabari\TypeInferer;
 use Datto\Cinnabari\InconsistentTypeException;
 
+function formatTypeSettings($setting)
+{
+    $formatted = "";
+    foreach ($setting as $name => $type) {
+        $formatted .= $name . "::" . $type . ", ";
+    }
+    return substr($formatted, 0, strlen($formatted) - 2);
+}
+
+function printSettingsList($settingsDictionary)
+{
+    foreach ($settingsDictionary as $returnType => $settings) {
+        echo 'RETURN TYPE: ' . $returnType . "\n";
+        foreach ($settings as $key => $setting) {
+            echo '    ' . formatTypeSettings($setting) . "\n";
+        }
+    }
+}
+
 $signatures = array(
     'plus' => array(
         array(
-            'arguments' => array('integer', 'integer'),
-            'return' => 'integer'
+            'arguments' => array('int', 'int'),
+            'return' => 'int'
         ),
 
         array(
-            'arguments' => array('float', 'integer'),
+            'arguments' => array('float', 'int'),
             'return' => 'float'
         ),
 
         array(
-            'arguments' => array('integer', 'float'),
+            'arguments' => array('int', 'float'),
             'return' => 'float'
         ),
 
@@ -29,27 +48,27 @@ $signatures = array(
         ),
 
         array(
-            'arguments' => array('string', 'string'),
-            'return' => 'string'
+            'arguments' => array('str', 'str'),
+            'return' => 'str'
         )
     ),
 
     'substr' => array(
         array(
-            'arguments' => array('string', 'integer'),
-            'return' => 'string'
+            'arguments' => array('str', 'int'),
+            'return' => 'str'
         )
     ),
     
     'slice' => array(
         array(
-            'arguments' => array('string', 'integer', 'integer'),
-            'return' => 'string'
+            'arguments' => array('str', 'int', 'int'),
+            'return' => 'str'
         ),
 
         array(
-            'arguments' => array('string', 'integer', 'float'),
-            'return' => 'string'
+            'arguments' => array('str', 'int', 'float'),
+            'return' => 'str'
         )
     ),
 
@@ -71,7 +90,7 @@ $signatures = array(
     )
 );
 
-$typeInferer = new TypeInferer($signatures);
+$typeInferer = new TypeInferer($signatures, $argv[1]);
 
 $expressions = array(
     array(
@@ -87,27 +106,21 @@ $expressions = array(
 
 $expressions = array(
     array(
-        'name' => 'plus',
+        'name' => 'slice',
         'type' => 'function',
         'arguments' => array(
             array('name' => 'a', 'type' => 'parameter'),
-            array(
-                'name' => 'plus',
-                'type' => 'function',
-                'arguments' => array(
-                    array('name' => 'b', 'type' => 'parameter'),
-                    array('name' => 'c', 'type' => 'parameter')
-                )
-            )
+            array('name' => 'b', 'type' => 'parameter'),
+            array('name' => 'c', 'type' => 'parameter')
         )
     )
 );
 
 try {
-    echo json_encode(
-        $typeInferer->infer($expressions),
-        JSON_PRETTY_PRINT
-    ) . "\n";
+    $results = $typeInferer->infer($expressions);
+    if ($argv[1] === '1') {
+        printSettingsList($results);
+    }
 } catch (InconsistentTypeException $e) {
     echo $e->getMessage() . "\n";
     echo json_encode($e->getData()) . "\n";
