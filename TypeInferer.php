@@ -1,5 +1,12 @@
 <?php
 
+/**
+ * PHP Type Inferer
+ *
+ * @author Anthony Liu
+ * @version 0.1
+ */
+
 namespace Datto\Cinnabari;
 
 class TypeInferer
