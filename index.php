@@ -1,10 +1,9 @@
 <?php
 
-require 'TypeInferer.php';
-require 'InconsistentTypeException.php';
+require 'src/bootstrap.php';
 
-use Datto\Cinnabari\TypeInferer;
 use Datto\Cinnabari\InconsistentTypeException;
+use Datto\Cinnabari\TypeInferer;
 
 $signatures = array(
     'plus' => array(
@@ -90,6 +89,17 @@ $expressions = array(
                     array('name' => 'a', 'type' => 'parameter')
                 )
             )
+        )
+    )
+);
+
+$expressions = array(
+    array(
+        'name' => 'plus',
+        'type' => 'function',
+        'arguments' => array(
+            array('name' => 'a', 'type' => 'parameter'),
+            array('name' => 'b', 'type' => 'parameter')
         )
     )
 );
