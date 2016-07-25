@@ -73,7 +73,6 @@ class TypeInferer
         $this->disambiguate($expression); // 0 is the initial id
 
         // construct a constraints dictionary
-        $constraints = array();
         $this->populateConstraints($expression, $constraints);
 
         // resolve the constraints (bottom up) to generate the list of valid types
@@ -176,15 +175,19 @@ class TypeInferer
 
     private function filterSignatures($viableSignatures, $callArity, $typeRestrictions)
     {
+        // always filter by arity
+        $viableSignatures = array_filter(
+            $viableSignatures,
+            function ($signature) use ($callArity) {
+                return $callArity === count($signature['arguments']);
+            }
+        );
+
+        // if there are restrictions, filter by types as well
         if (count($typeRestrictions) !== 0) {
             $viableSignatures = array_filter(
                 $viableSignatures,
-                function ($signature) use ($callArity, $typeRestrictions) {
-                    // compare arity
-                    if ($callArity !== count($signature['arguments'])) {
-                        return false;
-                    }
-
+                function ($signature) use ($typeRestrictions) {
                     // the signature's return type must be in the typeRestrictions array
                     $returnType = $signature['return'];
                     return array_search($returnType, $typeRestrictions) !== false;

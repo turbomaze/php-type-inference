@@ -8,7 +8,7 @@ use PHPUnit_Framework_TestCase;
 
 class TypeInfererTest extends PHPUnit_Framework_TestCase
 {
-    private static function getBasicSignatures()
+    private static function getSignatures()
     {
         $signatures = array(
             'plus' => array(
@@ -48,6 +48,12 @@ class TypeInfererTest extends PHPUnit_Framework_TestCase
             'slice' => array(
                 array(
                     'arguments' => array('str', 'int', 'int'),
+                    'return' => 'str'
+                ),
+                
+                // TODO: add support for multiple arity functions; this is here for coverage
+                array(
+                    'arguments' => array('str', 'flt'),
                     'return' => 'str'
                 )
             ),
@@ -436,6 +442,28 @@ class TypeInfererTest extends PHPUnit_Framework_TestCase
         $this->verifyException($expressions);
     }
 
+    public function testExceptionData()
+    {
+        $expressions = array(
+            array(
+                'name' => 'substr',
+                'type' => 'function',
+                'arguments' => array(
+                    array('name' => 'a', 'type' => 'parameter'),
+                    array('name' => 'a', 'type' => 'parameter')
+                )
+            )
+        );
+        $expected = array('name' => 'a', 'types' => array('int', 'str'));
+
+        try {
+            $this->inferTypes($expressions);
+        } catch (InconsistentTypeException $e) {
+            $data = $e->getData();
+            $this->assertEquals($data, $expected);
+        }
+    }
+
     private function verify($expressions, $expected)
     {
         $result = $this->inferTypes($expressions);
@@ -453,7 +481,7 @@ class TypeInfererTest extends PHPUnit_Framework_TestCase
     private function inferTypes($expressions)
     {
         // arrange
-        $signatures = self::getBasicSignatures();
+        $signatures = self::getSignatures();
         $typeInferer = new TypeInferer($signatures);
 
         // act
