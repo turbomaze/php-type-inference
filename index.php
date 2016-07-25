@@ -6,25 +6,6 @@ require 'InconsistentTypeException.php';
 use Datto\Cinnabari\TypeInferer;
 use Datto\Cinnabari\InconsistentTypeException;
 
-function formatTypeSettings($setting)
-{
-    $formatted = "";
-    foreach (array_reverse($setting) as $name => $type) {
-        $formatted .= $name . "::" . $type . ", ";
-    }
-    return substr($formatted, 0, strlen($formatted) - 2);
-}
-
-function printSettingsList($settingsDictionary)
-{
-    foreach ($settingsDictionary as $returnType => $settings) {
-        echo 'RETURN TYPE: ' . $returnType . "\n";
-        foreach ($settings as $key => $setting) {
-            echo '    ' . formatTypeSettings($setting) . "\n";
-        }
-    }
-}
-
 $signatures = array(
     'plus' => array(
         array(
@@ -70,35 +51,52 @@ $signatures = array(
             'arguments' => array('str', 'flt', 'flt'),
             'return' => 'str'
         )
+    ),
+
+    'floor' => array(
+        array(
+            'arguments' => array('int'),
+            'return' => 'int'
+        ),
+
+        array(
+            'arguments' => array('flt'),
+            'return' => 'int'
+        )
     )
 );
 
-$typeInferer = new TypeInferer($signatures, $argv[1]);
+$typeInferer = new TypeInferer($signatures);
 
 $expressions = array(
     array(
-        'name' => 'slice',
+        'name' => 'plus',
         'type' => 'function',
         'arguments' => array(
-            array('name' => 'a', 'type' => 'parameter'),
+            array('name' => 'c', 'type' => 'parameter'),
+            array('name' => 'a', 'type' => 'parameter')
+        )
+    ),
+    array(
+        'name' => 'substr',
+        'type' => 'function',
+        'arguments' => array(
+            array('name' => 'd', 'type' => 'parameter'),
             array(
                 'name' => 'plus',
                 'type' => 'function',
                 'arguments' => array(
-                    array('name' => 'c', 'type' => 'parameter'),
-                    array('name' => 'd', 'type' => 'parameter')
+                    array('name' => 'b', 'type' => 'parameter'),
+                    array('name' => 'a', 'type' => 'parameter')
                 )
-            ),
-            array('name' => 'b', 'type' => 'parameter')
+            )
         )
     )
 );
 
 try {
     $results = $typeInferer->infer($expressions);
-    if ($argv[1] === '1') {
-        printSettingsList($results);
-    }
+    echo json_encode($results, JSON_PRETTY_PRINT);
 } catch (InconsistentTypeException $e) {
     echo $e->getMessage() . "\n";
     echo json_encode($e->getData()) . "\n";
