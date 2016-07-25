@@ -42,12 +42,7 @@ $signatures = array(
     
     'slice' => array(
         array(
-            'arguments' => array('str', 'flt', 'int'),
-            'return' => 'str'
-        ),
-
-        array(
-            'arguments' => array('str', 'flt', 'flt'),
+            'arguments' => array('str', 'int', 'int'),
             'return' => 'str'
         )
     ),
@@ -95,11 +90,19 @@ $expressions = array(
 
 $expressions = array(
     array(
-        'name' => 'plus',
+        'name' => 'substr',
         'type' => 'function',
         'arguments' => array(
             array('name' => 'a', 'type' => 'parameter'),
             array('name' => 'b', 'type' => 'parameter')
+        )
+    ),
+    array(
+        'name' => 'substr',
+        'type' => 'function',
+        'arguments' => array(
+            array('name' => 'c', 'type' => 'parameter'),
+            array('name' => 'd', 'type' => 'parameter')
         )
     )
 );

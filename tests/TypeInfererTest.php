@@ -47,12 +47,7 @@ class TypeInfererTest extends PHPUnit_Framework_TestCase
             
             'slice' => array(
                 array(
-                    'arguments' => array('str', 'flt', 'int'),
-                    'return' => 'str'
-                ),
-        
-                array(
-                    'arguments' => array('str', 'flt', 'flt'),
+                    'arguments' => array('str', 'int', 'int'),
                     'return' => 'str'
                 )
             ),
@@ -75,9 +70,6 @@ class TypeInfererTest extends PHPUnit_Framework_TestCase
 
     public function testBasicPlus()
     {
-        // arrange
-        $signatures = self::getBasicSignatures();
-        $typeInferer = new TypeInferer($signatures);
         $expressions = array(
             array(
                 'name' => 'plus',
@@ -105,10 +97,366 @@ class TypeInfererTest extends PHPUnit_Framework_TestCase
             )
         );
 
-        // act
-        $result = $typeInferer->infer($expressions);
+        $this->verify($expressions, $expected);
+    }
 
-        // assert
+    public function testUnrelatedPlus()
+    {
+        $expressions = array(
+            array(
+                'name' => 'plus',
+                'type' => 'function',
+                'arguments' => array(
+                    array('name' => 'a', 'type' => 'parameter'),
+                    array('name' => 'b', 'type' => 'parameter')
+                )
+            ),
+            array(
+                'name' => 'plus',
+                'type' => 'function',
+                'arguments' => array(
+                    array('name' => 'c', 'type' => 'parameter'),
+                    array('name' => 'd', 'type' => 'parameter')
+                )
+            )
+        );
+        $expected = array(
+            'ordering' => array('b', 'a', 'd', 'c'),
+            'hierarchy' => array(
+                'int' => array(
+                    'int' => array(
+                        'int' => array(
+                            'int' => true,
+                            'flt' => true
+                        ),
+                        'flt' => array(
+                            'int' => true,
+                            'flt' => true
+                        ),
+                        'str' => array(
+                            'str' => true
+                        )
+                    ),
+                    'flt' => array(
+                        'int' => array(
+                            'int' => true,
+                            'flt' => true
+                        ),
+                        'flt' => array(
+                            'int' => true,
+                            'flt' => true
+                        ),
+                        'str' => array(
+                            'str' => true
+                        )
+                    )
+                ),
+                'flt' => array(
+                    'int' => array(
+                        'int' => array(
+                            'int' => true,
+                            'flt' => true
+                        ),
+                        'flt' => array(
+                            'int' => true,
+                            'flt' => true
+                        ),
+                        'str' => array(
+                            'str' => true
+                        )
+                    ),
+                    'flt' => array(
+                        'int' => array(
+                            'int' => true,
+                            'flt' => true
+                        ),
+                        'flt' => array(
+                            'int' => true,
+                            'flt' => true
+                        ),
+                        'str' => array(
+                            'str' => true
+                        )
+                    )
+                ),
+                'str' => array(
+                    'str' => array(
+                        'int' => array(
+                            'int' => true,
+                            'flt' => true
+                        ),
+                        'flt' => array(
+                            'int' => true,
+                            'flt' => true
+                        ),
+                        'str' => array(
+                            'str' => true
+                        )
+                    )
+                )
+            )
+        );
+
+        $this->verify($expressions, $expected);
+    }
+
+    public function testOverlappingPlus()
+    {
+        $expressions = array(
+            array(
+                'name' => 'plus',
+                'type' => 'function',
+                'arguments' => array(
+                    array('name' => 'a', 'type' => 'parameter'),
+                    array('name' => 'b', 'type' => 'parameter')
+                )
+            ),
+            array(
+                'name' => 'plus',
+                'type' => 'function',
+                'arguments' => array(
+                    array('name' => 'b', 'type' => 'parameter'),
+                    array('name' => 'c', 'type' => 'parameter')
+                )
+            )
+        );
+        $expected = array(
+            'ordering' => array('b', 'a', 'c'),
+            'hierarchy' => array(
+                'int' => array(
+                    'int' => array(
+                        'int' => true,
+                        'flt' => true
+                    ),
+                    'flt' => array(
+                        'int' => true,
+                        'flt' => true
+                    )
+                ),
+                'flt' => array(
+                    'int' => array(
+                        'int' => true,
+                        'flt' => true
+                    ),
+                    'flt' => array(
+                        'int' => true,
+                        'flt' => true
+                    )
+                ),
+                'str' => array(
+                    'str' => array(
+                        'str' => true
+                    )
+                )
+            )
+        );
+
+        $this->verify($expressions, $expected);
+    }
+
+    public function testThreeOverlappingPlus()
+    {
+        $expressions = array(
+            array(
+                'name' => 'plus',
+                'type' => 'function',
+                'arguments' => array(
+                    array('name' => 'a', 'type' => 'parameter'),
+                    array('name' => 'b', 'type' => 'parameter')
+                )
+            ),
+            array(
+                'name' => 'plus',
+                'type' => 'function',
+                'arguments' => array(
+                    array('name' => 'b', 'type' => 'parameter'),
+                    array('name' => 'c', 'type' => 'parameter')
+                )
+            ),
+
+            array(
+                'name' => 'plus',
+                'type' => 'function',
+                'arguments' => array(
+                    array('name' => 'c', 'type' => 'parameter'),
+                    array('name' => 'a', 'type' => 'parameter')
+                )
+            )
+        );
+        $expected = array(
+            'ordering' => array('b', 'a', 'c'),
+            'hierarchy' => array(
+                'int' => array(
+                    'int' => array(
+                        'int' => true,
+                        'flt' => true
+                    ),
+                    'flt' => array(
+                        'int' => true,
+                        'flt' => true
+                    )
+                ),
+                'flt' => array(
+                    'int' => array(
+                        'int' => true,
+                        'flt' => true
+                    ),
+                    'flt' => array(
+                        'int' => true,
+                        'flt' => true
+                    )
+                ),
+                'str' => array(
+                    'str' => array(
+                        'str' => true
+                    )
+                )
+            )
+        );
+
+        $this->verify($expressions, $expected);
+    }
+
+    public function testThreeArgumentFunction()
+    {
+        $expressions = array(
+            array(
+                'name' => 'slice',
+                'type' => 'function',
+                'arguments' => array(
+                    array('name' => 'a', 'type' => 'parameter'),
+                    array('name' => 'b', 'type' => 'parameter'),
+                    array('name' => 'c', 'type' => 'parameter')
+                )
+            )
+        );
+        $expected = array(
+            'ordering' => array('c', 'b', 'a'),
+            'hierarchy' => array(
+                'int' => array(
+                    'int' => array(
+                        'str' => true
+                    )
+                )
+            )
+        );
+
+        $this->verify($expressions, $expected);
+    }
+
+    public function testNestedThreeArgumentFunction()
+    {
+        $expressions = array(
+            array(
+                'name' => 'substr',
+                'type' => 'function',
+                'arguments' => array(
+                    array(
+                        'name' => 'slice',
+                        'type' => 'function',
+                        'arguments' => array(
+                            array('name' => 'a', 'type' => 'parameter'),
+                            array(
+                                'name' => 'plus',
+                                'type' => 'function',
+                                'arguments' => array(
+                                    array('name' => 'b', 'type' => 'parameter'),
+                                    array('name' => 'c', 'type' => 'parameter')
+                                )
+                            ),
+                            array('name' => 'd', 'type' => 'parameter')
+                        )
+                    ),
+                    array('name' => 'e', 'type' => 'parameter')
+                )
+            )
+        );
+        $expected = array(
+            'ordering' => array('e', 'd', 'c', 'b', 'a'),
+            'hierarchy' => array(
+                'int' => array(
+                    'int' => array(
+                        'int' => array(
+                            'int' => array(
+                                'str' => true
+                            )
+                        )
+                    )
+                )
+            )
+        );
+
+        $this->verify($expressions, $expected);
+    }
+
+    public function testLocalInconsistency()
+    {
+        $expressions = array(
+            array(
+                'name' => 'substr',
+                'type' => 'function',
+                'arguments' => array(
+                    array(
+                        'name' => 'plus',
+                        'type' => 'function',
+                        'arguments' => array(
+                            array('name' => 'a', 'type' => 'parameter'),
+                            array('name' => 'b', 'type' => 'parameter')
+                        )
+                    ),
+                    array('name' => 'a', 'type' => 'parameter')
+                )
+            )
+        );
+        
+        $this->verifyException($expressions);
+    }
+
+    public function testCrossExpressionInconsistency()
+    {
+        $expressions = array(
+            array(
+                'name' => 'substr',
+                'type' => 'function',
+                'arguments' => array(
+                    array('name' => 'a', 'type' => 'parameter'),
+                    array('name' => 'b', 'type' => 'parameter')
+                )
+            ),
+            array(
+                'name' => 'substr',
+                'type' => 'function',
+                'arguments' => array(
+                    array('name' => 'c', 'type' => 'parameter'),
+                    array('name' => 'a', 'type' => 'parameter')
+                )
+            )
+        );
+        
+        $this->verifyException($expressions);
+    }
+
+    private function verify($expressions, $expected)
+    {
+        $result = $this->inferTypes($expressions);
+
         $this->assertEquals($result, $expected);
+    }
+
+    private function verifyException($expressions)
+    {
+        $this->setExpectedException('Datto\Cinnabari\InconsistentTypeException');
+
+        $this->inferTypes($expressions);
+    }
+
+    private function inferTypes($expressions)
+    {
+        // arrange
+        $signatures = self::getBasicSignatures();
+        $typeInferer = new TypeInferer($signatures);
+
+        // act
+        return $typeInferer->infer($expressions);
     }
 }
