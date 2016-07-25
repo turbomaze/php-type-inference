@@ -1,10 +1,9 @@
 <?php
 
-require 'TypeInferer.php';
-require 'InconsistentTypeException.php';
+require 'src/bootstrap.php';
 
-use Datto\Cinnabari\TypeInferer;
 use Datto\Cinnabari\InconsistentTypeException;
+use Datto\Cinnabari\TypeInferer;
 
 $signatures = array(
     'plus' => array(
@@ -43,12 +42,13 @@ $signatures = array(
     
     'slice' => array(
         array(
-            'arguments' => array('str', 'flt', 'int'),
+            'arguments' => array('str', 'int', 'int'),
             'return' => 'str'
         ),
-
+                
+        // TODO: add support for multiple arity functions; this is here for coverage
         array(
-            'arguments' => array('str', 'flt', 'flt'),
+            'arguments' => array('str', 'flt'),
             'return' => 'str'
         )
     ),
@@ -90,6 +90,18 @@ $expressions = array(
                     array('name' => 'a', 'type' => 'parameter')
                 )
             )
+        )
+    )
+);
+
+$expressions = array(
+    array(
+        'name' => 'slice',
+        'type' => 'function',
+        'arguments' => array(
+            array('name' => 'a', 'type' => 'parameter'),
+            array('name' => 'b', 'type' => 'parameter'),
+            array('name' => 'c', 'type' => 'parameter')
         )
     )
 );
