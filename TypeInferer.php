@@ -15,6 +15,7 @@ class TypeInferer
         $this->signatureDictionary = array();
         foreach ($signatures as $name => $overloadList) {
             $this->signatureDictionary[$name] = array();
+
             foreach ($overloadList as $key => $signature) {
                 $reference = &$this->signatureDictionary[$name];
                 for ($s = 0; $s < count($signature['arguments']); $s++) {
@@ -31,30 +32,52 @@ class TypeInferer
 
     public function infer($expressions)
     {
-        // disambiguate the function and parameter names by appending unique ids to names
-        $labeledExpression = $expressions[0]; // TODO: only look at the first expression for now
-        $this->disambiguate($labeledExpression); // 0 is the initial id
+        // get the valid settings for each expression
+        $settingsLists = array();
+        foreach ($expressions as $key => $expression) {
+            $typeSettings  = $this->inferExpression($expression);
 
-        // construct a constraints dictionary
-        $this->populateConstraints($labeledExpression, $constraints);
+            // transform the data into a workable form
+            $flattenedTypeSettings = array();
+            foreach ($typeSettings as $returnType => $settings) {
+                // remove the expression's return type information for the resolution step
+                $flattenedTypeSettings = array_merge($flattenedTypeSettings, $settings);
+            }
+            
+            $settingsLists[] = $flattenedTypeSettings;
+        }
 
-        // resolve the constraints (bottom up) to generate the list of valid types
-        $inconsistencies = array();
-        $validTypeSettings = $this->reconstruct(
-            $labeledExpression['name'],
-            $constraints,
-            $labeledExpression,
-            $inconsistencies
-        );
-
-        if (count(array_keys($validTypeSettings)) === 0) {
-            throw $inconsistencies[0];
+        // resolve inconsistencies between the valid settings of each expression
+        $resolutionInconsistencies = array();
+        $validSettings = $this->resolveInconsistentSettings($settingsLists, $resolutionInconsistencies);
+        if (count($validSettings) === 0) {
+            throw $resolutionInconsistencies[0];
         }
 
         // build a structure to support efficient consistency verification (as opposed to an O(1) scan)
-        $lookupStructure = $this->getHierarchyFromList($validTypeSettings);
+        $lookupStructure = $this->getHierarchyFromList($validSettings);
 
         return $lookupStructure;
+    }
+
+    private function inferExpression($expression)
+    {
+        // disambiguate the function and parameter names by appending unique ids to names
+        $this->disambiguate($expression); // 0 is the initial id
+
+        // construct a constraints dictionary
+        $constraints = array();
+        $this->populateConstraints($expression, $constraints);
+
+        // resolve the constraints (bottom up) to generate the list of valid types
+        $inconsistencies = array();
+        $typeSettings = $this->reconstruct($expression['name'], $constraints, $expression, $inconsistencies);
+
+        if (count(array_keys($typeSettings)) === 0) {
+            throw $inconsistencies[0];
+        }
+
+        return $typeSettings;
     }
 
     private function disambiguate(&$expression, $id = 0)
@@ -331,6 +354,74 @@ class TypeInferer
         return $product;
     }
 
+    private function getNameFromIdentifier($id)
+    {
+        $index = strrpos($id, '#', -1);
+        $disambiguatedId = $id;
+        if ($index !== false) {
+            $disambiguatedId = substr($id, 0, $index);
+        }
+        return $disambiguatedId;
+    }
+
+    private function getHierarchyFromList($list)
+    {
+        $structure = array();
+        $structure['ordering'] = array_keys($list[0]); // the very first parameter setting
+        $structure['hierarchy'] = array();
+        foreach ($list as $key => $setting) {
+            $this->insertSettingIntoHierarchy($setting, $structure['ordering'], $structure['hierarchy']);
+        }
+
+        return $structure;
+    }
+
+    private function insertSettingIntoHierarchy($setting, $ordering, &$hierarchy)
+    {
+        if (count($ordering) === 0) {
+            $hierarchy = true;
+            return;
+        }
+
+        $type = $setting[$ordering[0]];
+        if (!array_key_exists($type, $hierarchy)) {
+            $hierarchy[$type] = array();
+        }
+        $this->insertSettingIntoHierarchy($setting, array_slice($ordering, 1), $hierarchy[$type]);
+    }
+
+    private function resolveInconsistentSettings($typeSettingsLists, &$errors)
+    {
+        // resolve inconsistencies between the sets
+        $consistentSet = $typeSettingsLists[0];
+        for ($i = 1; $i < count($typeSettingsLists); $i++) {
+            $consistentSet = $this->relaxSets($consistentSet, $typeSettingsLists[$i], $errors);
+            if (count($consistentSet) === 0) {
+                break;
+            }
+        }
+
+        return $consistentSet;
+    }
+
+    private function relaxSets($setA, $setB, &$errors)
+    {
+        $childSet = array();
+
+        // iterate through all pairs
+        foreach ($setA as $keyA => $settingA) {
+            foreach ($setB as $keyB => $settingB) {
+                try {
+                    $childSet[] = $this->merge($settingA, $settingB);
+                } catch (InconsistentTypeException $e) {
+                    $errors[] = $e;
+                }
+            }
+        }
+
+        return $childSet;
+    }
+
     private function merge($a, $b)
     {
         $object = array();
@@ -357,43 +448,5 @@ class TypeInferer
         }
     
         return $object;
-    }
-
-    private function getNameFromIdentifier($id)
-    {
-        $index = strrpos($id, '#', -1);
-        $disambiguatedId = $id;
-        if ($index !== false) {
-            $disambiguatedId = substr($id, 0, $index);
-        }
-        return $disambiguatedId;
-    }
-
-    public function getHierarchyFromList($list)
-    {
-        $structure = array();
-        $structure['ordering'] = array_keys(each($list)[1][0]); // the very first parameter setting
-        $structure['hierarchy'] = array();
-        foreach ($list as $returnType => $settings) {
-            foreach ($settings as $key => $setting) {
-                $this->insertSettingIntoHierarchy($setting, $structure['ordering'], $structure['hierarchy']);
-            }
-        }
-
-        return $structure;
-    }
-
-    public function insertSettingIntoHierarchy($setting, $ordering, &$hierarchy)
-    {
-        if (count($ordering) === 0) {
-            $hierarchy = true;
-            return;
-        }
-
-        $type = $setting[$ordering[0]];
-        if (!array_key_exists($type, $hierarchy)) {
-            $hierarchy[$type] = array();
-        }
-        $this->insertSettingIntoHierarchy($setting, array_slice($ordering, 1), $hierarchy[$type]);
     }
 }
