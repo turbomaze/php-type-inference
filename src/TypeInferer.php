@@ -4,7 +4,7 @@
  * PHP Type Inferer
  *
  * @author Anthony Liu
- * @version 0.2
+ * @version 0.3
  */
 
 namespace Datto\Cinnabari;
