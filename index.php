@@ -2,8 +2,8 @@
 
 require 'src/bootstrap.php';
 
-use Datto\Cinnabari\InconsistentTypeException;
-use Datto\Cinnabari\TypeInferer;
+use Datto\PhpTypeInferer\InconsistentTypeException;
+use Datto\PhpTypeInferer\TypeInferer;
 
 $signatures = array(
     'plus' => array(
