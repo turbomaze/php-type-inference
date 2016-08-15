@@ -67,41 +67,27 @@ $signatures = array(
 );
 
 $typeInferer = new TypeInferer($signatures);
-
 $expressions = array(
     array(
         'name' => 'plus',
         'type' => 'function',
         'arguments' => array(
-            array('name' => 'c', 'type' => 'parameter'),
-            array('name' => 'a', 'type' => 'parameter')
-        )
-    ),
-    array(
-        'name' => 'substr',
-        'type' => 'function',
-        'arguments' => array(
-            array('name' => 'd', 'type' => 'parameter'),
             array(
                 'name' => 'plus',
                 'type' => 'function',
                 'arguments' => array(
-                    array('name' => 'b', 'type' => 'parameter'),
-                    array('name' => 'a', 'type' => 'parameter')
+                    array('name' => 'a', 'type' => 'parameter'),
+                    array('name' => 'b', 'type' => 'parameter')
+                )
+            ),
+            array(
+                'name' => 'plus',
+                'type' => 'function',
+                'arguments' => array(
+                    array('name' => 'str', 'type' => 'primitive'),
+                    array('name' => 'c', 'type' => 'parameter')
                 )
             )
-        )
-    )
-);
-
-$expressions = array(
-    array(
-        'name' => 'slice',
-        'type' => 'function',
-        'arguments' => array(
-            array('name' => 'a', 'type' => 'parameter'),
-            array('name' => 'b', 'type' => 'parameter'),
-            array('name' => 'c', 'type' => 'parameter')
         )
     )
 );

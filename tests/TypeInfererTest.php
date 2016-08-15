@@ -395,6 +395,70 @@ class TypeInfererTest extends PHPUnit_Framework_TestCase
         $this->verify($expressions, $expected);
     }
 
+    public function testPrimitiveType()
+    {
+        $expressions = array(
+            array(
+                'name' => 'plus',
+                'type' => 'function',
+                'arguments' => array(
+                    array('name' => 'a', 'type' => 'parameter'),
+                    array('name' => 'str', 'type' => 'primitive')
+                )
+            )
+        );
+
+        $expected = array(
+            'ordering' => array('a'),
+            'hierarchy' => array(
+                'str' => true
+            )
+        );
+        
+        $this->verify($expressions, $expected);
+    }
+
+    public function testNestedPrimitiveTypes()
+    {
+        $expressions = array(
+            array(
+                'name' => 'plus',
+                'type' => 'function',
+                'arguments' => array(
+                    array(
+                        'name' => 'plus',
+                        'type' => 'function',
+                        'arguments' => array(
+                            array('name' => 'a', 'type' => 'parameter'),
+                            array('name' => 'b', 'type' => 'parameter')
+                        )
+                    ),
+                    array(
+                        'name' => 'plus',
+                        'type' => 'function',
+                        'arguments' => array(
+                            array('name' => 'str', 'type' => 'primitive'),
+                            array('name' => 'c', 'type' => 'parameter')
+                        )
+                    )
+                )
+            )
+        );
+
+        $expected = array(
+            'ordering' => array('c', 'b', 'a'),
+            'hierarchy' => array(
+                'str' => array(
+                    'str' => array(
+                        'str' => true
+                    )
+                )
+            )
+        );
+        
+        $this->verify($expressions, $expected);
+    }
+
     public function testLocalInconsistency()
     {
         $expressions = array(

@@ -4,7 +4,7 @@
  * PHP Type Inferer
  *
  * @author Anthony Liu
- * @version 0.2
+ * @version 0.3
  */
 
 namespace Datto\Cinnabari;
@@ -42,7 +42,7 @@ class TypeInferer
         // get the valid settings for each expression
         $settingsLists = array();
         foreach ($expressions as $key => $expression) {
-            $typeSettings  = $this->inferExpression($expression);
+            $typeSettings = $this->inferExpression($expression);
 
             // transform the data into a workable form
             $flattenedTypeSettings = array();
@@ -88,11 +88,13 @@ class TypeInferer
 
     private function disambiguate(&$expression, $id = 0)
     {
-        $expression['name'] = $expression['name'] . '#' . $id;
-        $id += 1;
-        if ($expression['type'] === 'function') {
-            for ($s = 0; $s < count($expression['arguments']); $s++) {
-                $id = $this->disambiguate($expression['arguments'][$s], $id);
+        if ($expression['type'] !== 'primitive') {
+            $expression['name'] = $expression['name'] . '#' . $id;
+            $id += 1;
+            if ($expression['type'] === 'function') {
+                for ($s = 0; $s < count($expression['arguments']); $s++) {
+                    $id = $this->disambiguate($expression['arguments'][$s], $id);
+                }
             }
         }
         return $id;
@@ -106,7 +108,7 @@ class TypeInferer
 
         if ($expression['type'] === 'parameter') {
             return false;
-        } else {
+        } elseif ($expression['type'] === 'function') {
             $expressionName = $expression['name'];
             $functionName = $this->getNameFromIdentifier($expression['name']);
             $signatures = $this->signatures[$functionName];
@@ -116,7 +118,32 @@ class TypeInferer
             $typeRestrictions = $this->getTypeRestrictions($constraints, $expressionName); // null or array of types
 
             // filter out the signatures of this function by 1) arity and 2) type restrictions
-            $viableSignatures = $this->filterSignatures($signatures, $callArity, $typeRestrictions);
+            $viableSignatures_ = $this->filterSignatures($signatures, $callArity, $typeRestrictions);
+
+            // filter by primitives
+            $primitiveArguments = array();
+            foreach ($expression['arguments'] as $index => $argument) {
+                if ($argument['type'] === 'primitive') {
+                    $primitiveArguments[] = array(
+                        'index' => $index,
+                        'name' => $argument['name']
+                    );
+                }
+            }
+            $viableSignatures = array();
+            foreach ($viableSignatures_ as $signature) {
+                $conformsToPrimitives = true;
+                foreach ($primitiveArguments as $primitive) {
+                    $type = explode('#', $primitive['name'])[0];
+                    if ($signature['arguments'][$primitive['index']] !== $type) {
+                        $conformsToPrimitives = false;
+                        break;
+                    }
+                }
+                if ($conformsToPrimitives) {
+                    $viableSignatures[] = $signature;
+                }
+            }
             
             // record the viable signatures in the constraints entries for each child
             foreach ($viableSignatures as $key => $signature) {
@@ -206,13 +233,21 @@ class TypeInferer
                 $expression['name'],
                 $constraints[$expression['name']]
             );
+        } elseif ($expression['type'] === 'primitive') {
+            return $this->reconstructPrimitive(
+                $expression['name'],
+                $constraints[$expression['name']]
+            );
         } else {
             // first, reconstruct all the children
             $functionName = $this->getNameFromIdentifier($expression['name']);
             $reconstructedKids = array();
             for ($c = 0; $c < count($expression['arguments']); $c++) {
                 $child = $expression['arguments'][$c];
-                $reconstructedKids[] = $this->reconstruct($functionName, $constraints, $child, $error);
+                $reconstructedKid = $this->reconstruct($functionName, $constraints, $child, $error);
+                if ($reconstructedKid !== false) {
+                    $reconstructedKids[] = $reconstructedKid;
+                }
             }
 
             // compute the raw product (indexed by return type)
@@ -257,6 +292,25 @@ class TypeInferer
                 );
             } else {
                 $reconstruction[$type] = $this->reconstructParameter(
+                    $name,
+                    $constraint[$type]
+                );
+            }
+        }
+        return $reconstruction;
+    }
+
+    private function reconstructPrimitive($name, $constraint)
+    {
+        $reconstruction = array();
+        foreach ($constraint as $type => $hierarchy) {
+            if (gettype($constraint[$type]) === 'boolean') {
+                $reconstruction[] = array(
+                  'settings' => 'primitive',
+                  'return' => $type
+                );
+            } else {
+                $reconstruction[$type] = $this->reconstructPrimitive(
                     $name,
                     $constraint[$type]
                 );
@@ -315,14 +369,21 @@ class TypeInferer
                 // offset the signature as well
                 $offsetSignature = $signature[$configuration['return']];
 
-                $product = $this->consolidate(
-                    $product,
-                    $this->cartesianProduct(
-                        $this->getSiblingProduct($offsetSignature, $offsetSiblings, $error),
-                        $configuration['settings'],
-                        $error
-                    )
-                );
+                // partial sibling product
+                $partialProduct = $this->getSiblingProduct($offsetSignature, $offsetSiblings, $error);
+
+                if ($configuration['settings'] !== 'primitive') {
+                    $product = $this->consolidate(
+                        $product,
+                        $this->cartesianProduct(
+                            $partialProduct,
+                            $configuration['settings'],
+                            $error
+                        )
+                    );
+                } else {
+                    $product = $partialProduct;
+                }
             }
             return $product;
         }
@@ -350,12 +411,19 @@ class TypeInferer
         foreach ($labeledSet as $returnType => $settings) {
             foreach ($settings as $key => $setting) {
                 try {
-                    $mergedSets = $this->merge($setting, $incrementalSet);
+                    if ($setting === 'primitive') {
+                        if (!array_key_exists($returnType, $product)) {
+                            $product[$returnType] = array();
+                        }
+                        $product[$returnType][] = $incrementalSet;
+                    } else {
+                        $mergedSets = $this->merge($setting, $incrementalSet);
 
-                    if (!array_key_exists($returnType, $product)) {
-                        $product[$returnType] = array();
+                        if (!array_key_exists($returnType, $product)) {
+                            $product[$returnType] = array();
+                        }
+                        $product[$returnType][] = $mergedSets;
                     }
-                    $product[$returnType][] = $mergedSets;
                 } catch (InconsistentTypeException $e) {
                     $error[] = $e;
                 }
