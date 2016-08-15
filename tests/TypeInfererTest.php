@@ -1,9 +1,9 @@
 <?php
 
-namespace Datto\Cinnabari\Tests;
+namespace Datto\PhpTypeInferer\Tests;
 
-use Datto\Cinnabari\InconsistentTypeException;
-use Datto\Cinnabari\TypeInferer;
+use Datto\PhpTypeInferer\InconsistentTypeException;
+use Datto\PhpTypeInferer\TypeInferer;
 use PHPUnit_Framework_TestCase;
 
 class TypeInfererTest extends PHPUnit_Framework_TestCase
@@ -537,7 +537,7 @@ class TypeInfererTest extends PHPUnit_Framework_TestCase
 
     private function verifyException($expressions)
     {
-        $this->setExpectedException('Datto\Cinnabari\InconsistentTypeException');
+        $this->setExpectedException('Datto\PhpTypeInferer\InconsistentTypeException');
 
         $this->inferTypes($expressions);
     }
