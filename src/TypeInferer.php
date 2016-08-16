@@ -55,6 +55,10 @@ class TypeInferer
 
     public function infer($expressions)
     {
+        if (count($expressions) === 0) {
+            return array('ordering' => array(), 'hierarchy' => true);
+        }
+
         // get the valid settings for each expression
         $settingsLists = array();
         foreach ($expressions as $key => $expression) {

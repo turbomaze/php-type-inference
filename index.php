@@ -112,13 +112,6 @@ $signatures = array(
 );
 $typeInferer = new TypeInferer($signatures);
 $expressions = array(
-    array(
-        'type' => 'function',
-        'name' => 'get',
-        'arguments' => array(
-            array('type' => 'primitive', 'name' => 2)
-        )
-    )
 );
 
 try {
