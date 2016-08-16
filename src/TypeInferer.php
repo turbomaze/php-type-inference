@@ -108,13 +108,11 @@ class TypeInferer
 
     private function disambiguate(&$expression, $id = 0)
     {
-        if ($expression['type'] !== 'primitive') {
-            $expression['name'] = $expression['name'] . '#' . $id;
-            $id += 1;
-            if ($expression['type'] === 'function') {
-                for ($s = 0; $s < count($expression['arguments']); $s++) {
-                    $id = $this->disambiguate($expression['arguments'][$s], $id);
-                }
+        $expression['name'] = $expression['name'] . '#' . $id;
+        $id += 1;
+        if ($expression['type'] === 'function') {
+            for ($s = 0; $s < count($expression['arguments']); $s++) {
+                $id = $this->disambiguate($expression['arguments'][$s], $id);
             }
         }
         return $id;

@@ -81,37 +81,65 @@ $signatures = array(
 $signatures = array(
     'less' => array(
         array(
-            'arguments' => array(2, 2),
-            'return' => 1
+            'arguments' => array('int', 'int'),
+            'return' => 'bool'
         ),
         array(
-            'arguments' => array(3, 2),
-            'return' => 1
+            'arguments' => array('float', 'int'),
+            'return' => 'bool'
         ),
         array(
-            'arguments' => array(2, 3),
-            'return' => 1
+            'arguments' => array('int', 'float'),
+            'return' => 'bool'
         ),
         array(
-            'arguments' => array(3, 3),
-            'return' => 1
+            'arguments' => array('float', 'float'),
+            'return' => 'bool'
+        )
+    ),
+    'or' => array(
+        array(
+            'arguments' => array('bool', 'bool'),
+            'return' => 'bool'
         )
     ),
     'filter' => array(
         array(
-            'arguments' => array(1),
-            'return' => 5
+            'arguments' => array('bool'),
+            'return' => 'list'
         )
     ),
     'get' => array(
         array(
-            'arguments' => array(2),
+            'arguments' => array('int'),
             'return' => 'list'
         )
     )
 );
 $typeInferer = new TypeInferer($signatures);
 $expressions = array(
+    array(
+        'type' => 'function',
+        'name' => 'or',
+        'arguments' => array(
+            array(
+                'type' => 'function',
+                'name' => 'less',
+                'arguments' => array(
+                    array('type' => 'primitive', 'name' => 'int'),
+                    array('type' => 'parameter', 'name' => 'a')
+                )
+            ),
+            array(
+                'type' => 'function',
+                'name' => 'less',
+                'arguments' => array(
+                    array('type' => 'parameter', 'name' => 'b'),
+                    array('type' => 'primitive', 'name' => 'int')
+                )
+            )
+        )
+    ),
 );
 
 try {
