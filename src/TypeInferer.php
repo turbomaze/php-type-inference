@@ -20,7 +20,7 @@
  * @author Anthony Liu <igliu@mit.edu>
  * @license http://www.gnu.org/licenses/lgpl-3.0.html LGPL-3.0
  * @copyright 2016 Datto, Inc.
- * @version 0.3.1
+ * @version 0.3.2
  */
 
 namespace Datto\PhpTypeInferer;
@@ -134,31 +134,18 @@ class TypeInferer
             $typeRestrictions = $this->getTypeRestrictions($constraints, $expressionName); // null or array of types
 
             // filter out the signatures of this function by 1) arity and 2) type restrictions
-            $viableSignatures_ = $this->filterSignatures($signatures, $callArity, $typeRestrictions);
+            $filteredSignatures = $this->filterSignatures($signatures, $callArity, $typeRestrictions);
 
             // filter by primitives
-            $primitiveArguments = array();
-            foreach ($expression['arguments'] as $index => $argument) {
-                if ($argument['type'] === 'primitive') {
-                    $primitiveArguments[] = array(
-                        'index' => $index,
-                        'name' => $argument['name']
-                    );
-                }
-            }
-            $viableSignatures = array();
-            foreach ($viableSignatures_ as $signature) {
-                $conformsToPrimitives = true;
-                foreach ($primitiveArguments as $primitive) {
-                    $type = explode('#', $primitive['name'])[0];
-                    if ($signature['arguments'][$primitive['index']] !== $type) {
-                        $conformsToPrimitives = false;
-                        break;
-                    }
-                }
-                if ($conformsToPrimitives) {
-                    $viableSignatures[] = $signature;
-                }
+            $viableSignatures = $this->filterSignaturesByPrimitives($expression, $filteredSignatures);
+
+            // throw an exception when there are no valid signatures
+            if (count($viableSignatures) === 0) {
+                throw new InconsistentTypeException(array(
+                    'type' => 'function',
+                    'name' => $expression['name'],
+                    'signatures' => $signatures
+                ));
             }
             
             // record the viable signatures in the constraints entries for each child
@@ -236,6 +223,35 @@ class TypeInferer
                     return array_search($returnType, $typeRestrictions) !== false;
                 }
             );
+        }
+
+        return $viableSignatures;
+    }
+
+    private function filterSignaturesByPrimitives($expression, $signatures)
+    {
+        $primitiveArguments = array();
+        foreach ($expression['arguments'] as $index => $argument) {
+            if ($argument['type'] === 'primitive') {
+                $primitiveArguments[] = array(
+                    'index' => $index,
+                    'name' => $argument['name']
+                );
+            }
+        }
+        $viableSignatures = array();
+        foreach ($signatures as $signature) {
+            $conformsToPrimitives = true;
+            foreach ($primitiveArguments as $primitive) {
+                $type = explode('#', $primitive['name'])[0];
+                if ($signature['arguments'][$primitive['index']] !== $type) {
+                    $conformsToPrimitives = false;
+                    break;
+                }
+            }
+            if ($conformsToPrimitives) {
+                $viableSignatures[] = $signature;
+            }
         }
 
         return $viableSignatures;

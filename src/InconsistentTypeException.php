@@ -20,7 +20,7 @@
  * @author Anthony Liu <igliu@mit.edu>
  * @license http://www.gnu.org/licenses/lgpl-3.0.html LGPL-3.0
  * @copyright 2016 Datto, Inc.
- * @version 0.3.1
+ * @version 0.3.2
  */
 
 namespace Datto\PhpTypeInferer;
