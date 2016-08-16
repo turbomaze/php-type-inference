@@ -82,19 +82,19 @@ $signatures = array(
     'less' => array(
         array(
             'arguments' => array(2, 2),
-            'return' => 2
+            'return' => 1
         ),
         array(
             'arguments' => array(3, 2),
-            'return' => 3
+            'return' => 1
         ),
         array(
             'arguments' => array(2, 3),
-            'return' => 3
+            'return' => 1
         ),
         array(
             'arguments' => array(3, 3),
-            'return' => 3
+            'return' => 1
         )
     ),
     'filter' => array(
@@ -114,7 +114,7 @@ $expressions = array(
                 'type' => 'function',
                 'name' => 'less',
                 'arguments' => array(
-                    array('type' => 'parameter', 'name' => 'a'),
+                    array('type' => 'primitive', 'name' => 2),
                     array('type' => 'parameter', 'name' => 'b')
                 )
             )
