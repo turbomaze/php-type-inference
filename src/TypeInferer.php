@@ -20,7 +20,7 @@
  * @author Anthony Liu <igliu@mit.edu>
  * @license http://www.gnu.org/licenses/lgpl-3.0.html LGPL-3.0
  * @copyright 2016 Datto, Inc.
- * @version 0.3.3
+ * @version 0.3.4
  */
 
 namespace Datto\PhpTypeInferer;
@@ -387,7 +387,11 @@ class TypeInferer
                 if (!array_key_exists($returnType, $product)) {
                     $prod[$returnType] = array();
                 }
-                $product[$returnType][] = $configuration['settings'];
+                if ($configuration['settings'] === 'primitive') {
+                    $product[$returnType][] = array();
+                } else {
+                    $product[$returnType][] = $configuration['settings'];
+                }
             }
             return $product;
         } else {
@@ -477,10 +481,13 @@ class TypeInferer
     private function getHierarchyFromList($list)
     {
         $structure = array();
-        $structure['ordering'] = array_keys($list[0]); // the very first parameter setting
-        $structure['hierarchy'] = array();
-        foreach ($list as $key => $setting) {
-            $this->insertSettingIntoHierarchy($setting, $structure['ordering'], $structure['hierarchy']);
+
+        if (count($list) > 0) {
+            $structure['ordering'] = array_keys($list[0]); // the very first parameter setting
+            $structure['hierarchy'] = array();
+            foreach ($list as $key => $setting) {
+                $this->insertSettingIntoHierarchy($setting, $structure['ordering'], $structure['hierarchy']);
+            }
         }
 
         return $structure;

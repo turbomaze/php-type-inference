@@ -102,22 +102,21 @@ $signatures = array(
             'arguments' => array(1),
             'return' => 5
         )
+    ),
+    'get' => array(
+        array(
+            'arguments' => array(2),
+            'return' => 'list'
+        )
     )
 );
 $typeInferer = new TypeInferer($signatures);
 $expressions = array(
     array(
         'type' => 'function',
-        'name' => 'filter',
+        'name' => 'get',
         'arguments' => array(
-            array(
-                'type' => 'function',
-                'name' => 'less',
-                'arguments' => array(
-                    array('type' => 'primitive', 'name' => 2),
-                    array('type' => 'parameter', 'name' => 'b')
-                )
-            )
+            array('type' => 'primitive', 'name' => 2)
         )
     )
 );
