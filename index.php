@@ -63,29 +63,59 @@ $signatures = array(
             'arguments' => array('flt'),
             'return' => 'int'
         )
+    ),
+
+    'foo' => array(
+        array(
+            'arguments' => array(144),
+            'return' => 144
+        ),
+
+        array(
+            'arguments' => array(5511),
+            'return' => 144
+        )
     )
 );
 
+$signatures = array(
+    'less' => array(
+        array(
+            'arguments' => array(2, 2),
+            'return' => 2
+        ),
+        array(
+            'arguments' => array(3, 2),
+            'return' => 3
+        ),
+        array(
+            'arguments' => array(2, 3),
+            'return' => 3
+        ),
+        array(
+            'arguments' => array(3, 3),
+            'return' => 3
+        )
+    ),
+    'filter' => array(
+        array(
+            'arguments' => array(1),
+            'return' => 5
+        )
+    )
+);
 $typeInferer = new TypeInferer($signatures);
 $expressions = array(
     array(
-        'name' => 'plus',
         'type' => 'function',
+        'name' => 'filter',
         'arguments' => array(
             array(
-                'name' => 'plus',
                 'type' => 'function',
+                'name' => 'less',
                 'arguments' => array(
-                    array('name' => 'a', 'type' => 'parameter'),
-                    array('name' => 'b', 'type' => 'parameter')
-                )
-            ),
-            array(
-                'name' => 'plus',
-                'type' => 'function',
-                'arguments' => array(
-                    array('name' => 'str', 'type' => 'primitive'),
-                    array('name' => 'c', 'type' => 'parameter')
+                    array('type' => 'parameter', 'name' => 'a'),
+                    array('type' => 'parameter', 'name' => 'b')
                 )
             )
         )
