@@ -20,7 +20,7 @@
  * @author Anthony Liu <igliu@mit.edu>
  * @license http://www.gnu.org/licenses/lgpl-3.0.html LGPL-3.0
  * @copyright 2016 Datto, Inc.
- * @version 0.3.2
+ * @version 0.3.3
  */
 
 namespace Datto\PhpTypeInferer;
@@ -244,7 +244,7 @@ class TypeInferer
             $conformsToPrimitives = true;
             foreach ($primitiveArguments as $primitive) {
                 $type = explode('#', $primitive['name'])[0];
-                if ($signature['arguments'][$primitive['index']] !== $type) {
+                if (strval($signature['arguments'][$primitive['index']]) !== strval($type)) {
                     $conformsToPrimitives = false;
                     break;
                 }
