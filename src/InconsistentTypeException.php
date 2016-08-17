@@ -20,7 +20,7 @@
  * @author Anthony Liu <igliu@mit.edu>
  * @license http://www.gnu.org/licenses/lgpl-3.0.html LGPL-3.0
  * @copyright 2016 Datto, Inc.
- * @version 0.3.4
+ * @version 0.3.5
  */
 
 namespace Datto\PhpTypeInferer;
@@ -29,7 +29,7 @@ class InconsistentTypeException extends \Exception
 {
     private $data;
 
-    public function __construct($data, $code = 0, Exception $previous = null)
+    public function __construct($data, $code = 0, \Exception $previous = null)
     {
         parent::__construct('ERROR: inconsistent type constraints.', $code, $previous);
 
